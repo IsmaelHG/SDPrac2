@@ -1,0 +1,19 @@
+lithops:
+
+    storage_bucket: XXXX
+
+ibm_cf:
+
+    endpoint : https://XXX.functions.cloud.ibm.com
+
+    namespace   : XXX
+
+    api_key : XXXXX
+
+ibm_cos:
+
+    region  :  XXXXX
+
+    access_key  : XXXXX
+
+    secret_key  : XXXXX
