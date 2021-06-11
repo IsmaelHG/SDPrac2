@@ -9,6 +9,9 @@ __pycache__/
 # Config lithops
 .lithops_config
 
+# Fichero claves API
+Claves
+
 # Distribution / packaging
 .Python
 build/
