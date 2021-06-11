@@ -1,4 +1,4 @@
-# SDPrac1
+# SDPrac2
 
 Practica 2 de Sistemas Distribuidos
 
