@@ -17,16 +17,17 @@ STORAGEBUCKET = "sdprac2python"
 #           download a bunch of tweets from a given keyword + location, get the data and upload
 #           it to the cloud object storage
 def get_tweets(keyword, location):
-    auth = tweepy.OAuthHandler("", "")
-    auth.set_access_token("", "")
+    auth = tweepy.OAuthHandler("ZxJGBnPdJ5pu8q1OXbzElVUTm", "nqtsyrUn02lmSVlWlhcBReoR7R3rVIDUUPt2U1rQaqjJncZ7k4")
+    auth.set_access_token("3929051777-FwKhgmI1U3tv35UbDLGliJEuIdRex6mZQX0XmqE",
+                          "Q1F8PXzG282TAX4pB71UHLjUxKSux81QG4AlFyZmlZAID")
 
     twitterAPI = tweepy.API(auth, wait_on_rate_limit=True)
-    searchstr = keyword + " " + location + "lang:ca OR lang:es"     # Only look for tweets in catalan or spanish
+    searchstr = keyword + " " + location + "lang:ca OR lang:es"  # Only look for tweets in catalan or spanish
 
-    list_tweets = []    # In this dictionary array we will store the structured tweets
+    list_tweets = []  # In this dictionary array we will store the structured tweets
 
     # Start to iterate over the twitter API to download tweets
-    for tweet in tweepy.Cursor(twitterAPI.search, q=searchstr, tweet_mode="extended").items(50):  # numberOftwets
+    for tweet in tweepy.Cursor(twitterAPI.search, q=searchstr, tweet_mode="extended").items(100):  # numberOftwets
         # Start saving tweets, separating all the relevant data
         tweetstr = tweet.full_text
         url = "https://twitter.com/twitter/statuses/" + str(tweet.id)
@@ -51,12 +52,10 @@ def get_tweets(keyword, location):
     storage.put_object(bucket=STORAGEBUCKET, key=keyword + location + ".json", body=json.dumps(packed_tweets))
 
 
-
 # Stage 2: Analyzing and producing structured data from the previous stage crawl
 #           Get the data from the cloud object storage and run a sentimental analysis over it
 #           Store the result structured in a csv file
 def analyze_tweets(keyword, location):
-
     # Get the data from cloud
     storage = Storage()
     json_tweets = storage.get_object(bucket=STORAGEBUCKET, key=keyword + location + ".json")
@@ -72,33 +71,29 @@ def analyze_tweets(keyword, location):
         # Start iterating over the tweets downloaded from the cloud, execute sentimental analysis and put the result in a csv file
         for tweet in packed_tweets["tweets"]:
             tweetstr = mtranslate.translate(str(tweet["Texto tweet"]), "en", "auto")
-            writer.writerow([str(tweet["URL"]), str(tweet["Fecha"]), str(analisador.polarity_scores(tweetstr)['compound'])])
-
+            writer.writerow(
+                [str(tweet["URL"]), str(tweet["Fecha"]), str(analisador.polarity_scores(tweetstr)['compound'])])
 
 
 # Stage 3: Define methods to do querys through the notebook
 
 # Does a mean by the 4th column which contains the results of the sentimental analysis and returns the result
 def sentymental_mean(keyword, location):
-
     with open(keyword + location + ".csv", 'r') as file:
         csvfile = pd.read_csv(file)
         query = """ SELECT AVG(c.Sentiment)
                     FROM csvfile c 
                     WHERE Sentiment!='NaN'"""
-    return psql.sqldf(query).at[0,'AVG(c.Sentiment)']
+    return psql.sqldf(query).at[0, 'AVG(c.Sentiment)']
+
 
 # Executes sentimental mean for every region(location) and plots the results in a colour-based map
 def plotting_mean():
     pass
 
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    fexec = lithops.ServerlessExecutor(runtime='txikitan/lithopsprac2:0.1')
-    with Pool(initargs=fexec) as pool:
-
-        pool.map(get_tweets,  ["selectividad", "madrid"])
-        #pool.wait()
-        #pool.map(analyze_tweets,  ["selectividad", "madrid"])
-        #pool.wait()
-        #pool.map(sentymental_mean,  ["selectividad", "madrid"])
+    fexec = lithops.FunctionExecutor()
+    fexec.call_async(get_tweets, ("selectividad", "madrid",))
+    print(fexec.get_result())
