@@ -3,6 +3,7 @@ urllib3
 setuptools
 mtranslate
 pandas
+pandasql
 tweepy
 vaderSentiment
 sqlalchemy

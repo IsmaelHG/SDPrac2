@@ -22,12 +22,12 @@ def get_tweets(keyword, location):
                           "Q1F8PXzG282TAX4pB71UHLjUxKSux81QG4AlFyZmlZAID")
 
     twitterAPI = tweepy.API(auth, wait_on_rate_limit=True)
-    searchstr = keyword + " " + location + "lang:ca OR lang:es"  # Only look for tweets in catalan or spanish
+    searchstr = keyword + " " + '"' + location + '"' + "lang:ca OR lang:es"  # Only look for tweets in catalan or spanish
 
     list_tweets = []  # In this dictionary array we will store the structured tweets
 
     # Start to iterate over the twitter API to download tweets
-    for tweet in tweepy.Cursor(twitterAPI.search, q=searchstr, tweet_mode="extended").items(100):  # numberOftwets
+    for tweet in tweepy.Cursor(twitterAPI.search, q=searchstr, tweet_mode="extended").items(200):  # numberOftwets
         # Start saving tweets, separating all the relevant data
         tweetstr = tweet.full_text
         url = "https://twitter.com/twitter/statuses/" + str(tweet.id)
@@ -40,6 +40,7 @@ def get_tweets(keyword, location):
             "Ubicacion": localizacion  # Localizacion del usuario del tweet y no del tema (madrid, cataluña, etc)
         }
 
+
         list_tweets.append(packed_tweet)
 
     # Add all the tweets from the list to another dictionary
@@ -50,7 +51,6 @@ def get_tweets(keyword, location):
     # Upload them to the cloud object storage
     storage = Storage()
     storage.put_object(bucket=STORAGEBUCKET, key=keyword + location + ".json", body=json.dumps(packed_tweets))
-
 
 # Stage 2: Analyzing and producing structured data from the previous stage crawl
 #           Get the data from the cloud object storage and run a sentimental analysis over it
@@ -94,6 +94,15 @@ def plotting_mean():
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    fexec = lithops.FunctionExecutor()
-    fexec.call_async(get_tweets, ("selectividad", "madrid",))
-    print(fexec.get_result())
+    fexec = lithops.FunctionExecutor(runtime="ismaelhg2000/sdprac2runtime:0.5")
+    with Pool() as pool:
+        pool.starmap(get_tweets,  [("selectividad", "madrid",),("selectividad", "andalucia",),("selectividad", "valencia",)])
+        pool.starmap(analyze_tweets,  [("selectividad", "madrid",), ("selectividad", "andalucia",), ("selectividad", "valencia",)])
+
+    print(sentymental_mean("selectividad", "madrid"))
+    print(sentymental_mean("selectividad", "andalucia"))
+    print(sentymental_mean("selectividad", "valencia"))
+
+    #fexec = lithops.FunctionExecutor()
+    #fexec.call_async(get_tweets,("selectividad","madrid",))
+    #print(fexec.get_result())
