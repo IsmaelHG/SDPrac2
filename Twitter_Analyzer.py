@@ -1,10 +1,13 @@
 import csv
 import json
-
-from lithops import Storage
-from lithops.storage.cloud_proxy import os, open
-import tweepy
 import mtranslate
+import tweepy
+import pandas as pd
+import pandasql as psql
+import lithops
+from lithops import Storage
+from lithops.multiprocessing import Pool
+from lithops.storage.cloud_proxy import open
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 STORAGEBUCKET = "sdprac2python"
@@ -23,7 +26,7 @@ def get_tweets(keyword, location):
     list_tweets = []    # In this dictionary array we will store the structured tweets
 
     # Start to iterate over the twitter API to download tweets
-    for tweet in tweepy.Cursor(twitterAPI.search, q=searchstr, tweet_mode="extended").items(200):  # numberOftwets
+    for tweet in tweepy.Cursor(twitterAPI.search, q=searchstr, tweet_mode="extended").items(50):  # numberOftwets
         # Start saving tweets, separating all the relevant data
         tweetstr = tweet.full_text
         url = "https://twitter.com/twitter/statuses/" + str(tweet.id)
@@ -35,6 +38,7 @@ def get_tweets(keyword, location):
             "Fecha": fecha,
             "Ubicacion": localizacion  # Localizacion del usuario del tweet y no del tema (madrid, cataluña, etc)
         }
+
         list_tweets.append(packed_tweet)
 
     # Add all the tweets from the list to another dictionary
@@ -45,6 +49,7 @@ def get_tweets(keyword, location):
     # Upload them to the cloud object storage
     storage = Storage()
     storage.put_object(bucket=STORAGEBUCKET, key=keyword + location + ".json", body=json.dumps(packed_tweets))
+
 
 
 # Stage 2: Analyzing and producing structured data from the previous stage crawl
@@ -63,14 +68,37 @@ def analyze_tweets(keyword, location):
     # URL, Localizacion, Fecha, Sentiment
     with open(keyword + location + ".csv", 'w') as file:
         writer = csv.writer(file)
-        writer.writerow(["URL", "Localizacion", "Fecha", "Sentiment"])
+        writer.writerow(["URL", "Fecha", "Sentiment"])
         # Start iterating over the tweets downloaded from the cloud, execute sentimental analysis and put the result in a csv file
         for tweet in packed_tweets["tweets"]:
             tweetstr = mtranslate.translate(str(tweet["Texto tweet"]), "en", "auto")
-            writer.writerow([str(tweet["URL"]), str(tweet["Ubicacion"]), str(tweet["Fecha"]), str(analisador.polarity_scores(tweetstr)['compound'])])
+            writer.writerow([str(tweet["URL"]), str(tweet["Fecha"]), str(analisador.polarity_scores(tweetstr)['compound'])])
 
+
+
+# Stage 3: Define methods to do querys through the notebook
+
+# Does a mean by the 4th column which contains the results of the sentimental analysis and returns the result
+def sentymental_mean(keyword, location):
+
+    with open(keyword + location + ".csv", 'r') as file:
+        csvfile = pd.read_csv(file)
+        query = """ SELECT AVG(c.Sentiment)
+                    FROM csvfile c 
+                    WHERE Sentiment!='NaN'"""
+    return psql.sqldf(query).at[0,'AVG(c.Sentiment)']
+
+# Executes sentimental mean for every region(location) and plots the results in a colour-based map
+def plotting_mean():
+    pass
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    get_tweets("selectividad", "madrid")
-    analyze_tweets("selectividad", "madrid")
+    fexec = lithops.ServerlessExecutor(runtime='txikitan/lithopsprac2:0.1')
+    with Pool(initargs=fexec) as pool:
+
+        pool.map(get_tweets,  ["selectividad", "madrid"])
+        #pool.wait()
+        #pool.map(analyze_tweets,  ["selectividad", "madrid"])
+        #pool.wait()
+        #pool.map(sentymental_mean,  ["selectividad", "madrid"])
