@@ -8,3 +8,7 @@ tweepy
 vaderSentiment
 sqlalchemy
 matplotlib
+numpy
+geopandas
+shapely
+ipywidgets

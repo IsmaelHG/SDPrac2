@@ -1,16 +1,33 @@
 import csv
 import json
+
+import lithops
 import mtranslate
 import tweepy
 import pandas as pd
 import pandasql as psql
-import lithops
 from lithops import Storage
 from lithops.multiprocessing import Pool
 from lithops.storage.cloud_proxy import open
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 STORAGEBUCKET = "sdprac2python"
+LISTACOMUNIDADES = [("selectivitat", "catalunya",),
+                    ("selectividad", "andalucia",),
+                    ("selectividad", "aragon",),
+                    ("selectividad", "asturias",),
+                    ("selectividad", "cantabria",),
+                    ("selectividad", "castilla y leon",),
+                    ("selectividad", "castilla la mancha",),
+                    ("selectividad", "valencia",),
+                    ("selectividad", "extremadura",),
+                    ("selectividad", "galicia",),
+                    ("selectividad", "madrid",),
+                    ("selectividad", "murcia",),
+                    ("selectividad", "navarra",),
+                    ("selectividad", "pais vasco",),
+                    ("selectividad", "la rioja",),
+                    ("selectividad", "valencia",)]
 
 
 # Stage 1:  data crawling
@@ -18,16 +35,17 @@ STORAGEBUCKET = "sdprac2python"
 #           it to the cloud object storage
 def get_tweets(keyword, location):
     auth = tweepy.OAuthHandler("ZxJGBnPdJ5pu8q1OXbzElVUTm", "nqtsyrUn02lmSVlWlhcBReoR7R3rVIDUUPt2U1rQaqjJncZ7k4")
+    # Estas claves API serán revocadas antes de exponer el repositorio al publico
     auth.set_access_token("3929051777-FwKhgmI1U3tv35UbDLGliJEuIdRex6mZQX0XmqE",
                           "Q1F8PXzG282TAX4pB71UHLjUxKSux81QG4AlFyZmlZAID")
 
     twitterAPI = tweepy.API(auth, wait_on_rate_limit=True)
-    searchstr = keyword + " " + '"' + location + '"' + "lang:ca OR lang:es"  # Only look for tweets in catalan or spanish
+    searchstr = '"' + keyword + '"' + " " + '"' + location + '"' + "lang:ca OR lang:es -filter:retweets"  # Only look for tweets in catalan or spanish and exclude retweets
 
     list_tweets = []  # In this dictionary array we will store the structured tweets
 
     # Start to iterate over the twitter API to download tweets
-    for tweet in tweepy.Cursor(twitterAPI.search, q=searchstr, tweet_mode="extended").items(200):  # numberOftwets
+    for tweet in tweepy.Cursor(twitterAPI.search, q=searchstr, tweet_mode="extended").items(500):  # numberOftwets
         # Start saving tweets, separating all the relevant data
         tweetstr = tweet.full_text
         url = "https://twitter.com/twitter/statuses/" + str(tweet.id)
@@ -94,15 +112,14 @@ def plotting_mean():
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    fexec = lithops.FunctionExecutor(runtime="ismaelhg2000/sdprac2runtime:0.5")
-    with Pool() as pool:
-        pool.starmap(get_tweets,  [("selectividad", "madrid",),("selectividad", "andalucia",),("selectividad", "valencia",)])
-        pool.starmap(analyze_tweets,  [("selectividad", "madrid",), ("selectividad", "andalucia",), ("selectividad", "valencia",)])
+    #with Pool() as pool:
+    #    pool.starmap(get_tweets,  LISTACOMUNIDADES)
+    #    pool.starmap(analyze_tweets,  LISTACOMUNIDADES)
 
     print(sentymental_mean("selectividad", "madrid"))
-    print(sentymental_mean("selectividad", "andalucia"))
-    print(sentymental_mean("selectividad", "valencia"))
+    #print(sentymental_mean("selectividad", "andalucia"))
+    #print(sentymental_mean("selectividad", "valencia"))
+    #print(sentymental_mean("selectivitat", "catalunya"))
 
-    #fexec = lithops.FunctionExecutor()
-    #fexec.call_async(get_tweets,("selectividad","madrid",))
+    #get_tweets("selectividad","madrid")
     #print(fexec.get_result())
