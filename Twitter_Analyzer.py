@@ -1,11 +1,10 @@
 import csv
 import json
 
-import lithops
 import mtranslate
-import tweepy
 import pandas as pd
 import pandasql as psql
+import tweepy
 from lithops import Storage
 from lithops.multiprocessing import Pool
 from lithops.storage.cloud_proxy import open
@@ -26,8 +25,9 @@ LISTACOMUNIDADES = [("selectivitat", "catalunya",),
                     ("selectividad", "murcia",),
                     ("selectividad", "navarra",),
                     ("selectividad", "pais vasco",),
-                    ("selectividad", "la rioja",),
-                    ("selectividad", "valencia",)]
+                    ("selectividad", "rioja",),
+                    ("selectividad", "baleares",),
+                    ("selectividad", "canarias",)]
 
 
 # Stage 1:  data crawling
@@ -58,7 +58,6 @@ def get_tweets(keyword, location):
             "Ubicacion": localizacion  # Localizacion del usuario del tweet y no del tema (madrid, cataluña, etc)
         }
 
-
         list_tweets.append(packed_tweet)
 
     # Add all the tweets from the list to another dictionary
@@ -69,6 +68,7 @@ def get_tweets(keyword, location):
     # Upload them to the cloud object storage
     storage = Storage()
     storage.put_object(bucket=STORAGEBUCKET, key=keyword + location + ".json", body=json.dumps(packed_tweets))
+
 
 # Stage 2: Analyzing and producing structured data from the previous stage crawl
 #           Get the data from the cloud object storage and run a sentimental analysis over it
@@ -102,24 +102,23 @@ def sentymental_mean(keyword, location):
         query = """ SELECT AVG(c.Sentiment)
                     FROM csvfile c 
                     WHERE Sentiment!='NaN'"""
-    return psql.sqldf(query).at[0, 'AVG(c.Sentiment)']
+    return psql.sqldf(query).at[0, 'AVG(c.Sentiment)'], location
 
 
 # Executes sentimental mean for every region(location) and plots the results in a colour-based map
 def plotting_mean():
     pass
 
-
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    #with Pool() as pool:
-    #    pool.starmap(get_tweets,  LISTACOMUNIDADES)
-    #    pool.starmap(analyze_tweets,  LISTACOMUNIDADES)
+    with Pool() as pool:
+        pool.starmap(get_tweets, LISTACOMUNIDADES)
+        pool.starmap(analyze_tweets, LISTACOMUNIDADES)
 
-    print(sentymental_mean("selectividad", "madrid"))
-    #print(sentymental_mean("selectividad", "andalucia"))
-    #print(sentymental_mean("selectividad", "valencia"))
-    #print(sentymental_mean("selectivitat", "catalunya"))
+    # print(sentymental_mean("selectividad", "madrid"))
+    # print(sentymental_mean("selectividad", "andalucia"))
+    # print(sentymental_mean("selectividad", "valencia"))
+    # print(sentymental_mean("selectivitat", "catalunya"))
 
-    #get_tweets("selectividad","madrid")
-    #print(fexec.get_result())
+    # get_tweets("selectividad","madrid")
+    # print(fexec.get_result())
