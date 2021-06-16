@@ -10,6 +10,11 @@ from lithops.multiprocessing import Pool
 from lithops.storage.cloud_proxy import open
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
+#Claves no desveladas
+CONSUMERKEY = ""
+SECRETKEY = ""
+TWITTERKEY = ""
+TWITTERSECRET = ""
 STORAGEBUCKET = "sdprac2python"
 LISTACOMUNIDADES = [("selectivitat", "catalunya",),
                     ("selectividad", "andalucia",),
@@ -34,10 +39,9 @@ LISTACOMUNIDADES = [("selectivitat", "catalunya",),
 #           download a bunch of tweets from a given keyword + location, get the data and upload
 #           it to the cloud object storage
 def get_tweets(keyword, location):
-    auth = tweepy.OAuthHandler("ZxJGBnPdJ5pu8q1OXbzElVUTm", "nqtsyrUn02lmSVlWlhcBReoR7R3rVIDUUPt2U1rQaqjJncZ7k4")
-    # Estas claves API serán revocadas antes de exponer el repositorio al publico
-    auth.set_access_token("3929051777-FwKhgmI1U3tv35UbDLGliJEuIdRex6mZQX0XmqE",
-                          "Q1F8PXzG282TAX4pB71UHLjUxKSux81QG4AlFyZmlZAID")
+
+    auth = tweepy.OAuthHandler(CONSUMERKEY, SECRETKEY)
+    auth.set_access_token(TWITTERKEY, TWITTERSECRET)
 
     twitterAPI = tweepy.API(auth, wait_on_rate_limit=True)
     searchstr = '"' + keyword + '"' + " " + '"' + location + '"' + "lang:ca OR lang:es -filter:retweets"  # Only look for tweets in catalan or spanish and exclude retweets
@@ -111,14 +115,8 @@ def plotting_mean():
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
+    # We obtain all the tweets simultaneously, analyze them to generate the csv and work over it in stage 3 (notebook)
     with Pool() as pool:
         pool.starmap(get_tweets, LISTACOMUNIDADES)
         pool.starmap(analyze_tweets, LISTACOMUNIDADES)
 
-    # print(sentymental_mean("selectividad", "madrid"))
-    # print(sentymental_mean("selectividad", "andalucia"))
-    # print(sentymental_mean("selectividad", "valencia"))
-    # print(sentymental_mean("selectivitat", "catalunya"))
-
-    # get_tweets("selectividad","madrid")
-    # print(fexec.get_result())
