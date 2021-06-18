@@ -1,19 +1,11 @@
 lithops:
-
-    storage_bucket: XXXX
-
+    storage_bucket: sdprac2python
+ibm:
+    iam_api_key :  xxx
 ibm_cf:
-
-    endpoint : https://XXX.functions.cloud.ibm.com
-
-    namespace   : XXX
-
-    api_key : XXXXX
-
+    endpoint : https://xxx.functions.cloud.ibm.com
+    namespace   : xxx
+    namespace_id : xxx
+    runtime : ismaelhg2000/sdprac2runtime:1.0
 ibm_cos:
-
-    region  :  XXXXX
-
-    access_key  : XXXXX
-
-    secret_key  : XXXXX
+    region  :  xxx
